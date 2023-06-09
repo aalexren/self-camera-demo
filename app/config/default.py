@@ -15,9 +15,10 @@ class DefaultSettings(BaseSettings):
     POSTGRES_USER: str = environ.get("POSTGRES_USER", "admin")
     POSTGRES_PASSWORD: str = environ.get("POSTGRES_PASSWORD", "admin")
 
-    CLIENT_ISSUER: str = environ.get("CLIENT_ISSUER", "http://localhost:8080")
-    CLIENT_ID: str = environ.get("CLIENT_ID", "217697009300209666@camera_service")
-    CLIENT_SECRET: str = environ.get("CLIENT_SECRET", "mAluswEPu3VZFlQHgbqFAQIXYiGOBbaaETDjB650bmwqhOOrksRqf2b3Q7RtuVor")
+    ZITADEL_HOST: str = environ.get("ZITADEL_HOST", "localhost")
+    CLIENT_ISSUER: str = environ.get("CLIENT_ISSUER", f"http://{ZITADEL_HOST}:8080")
+    CLIENT_ID: str = environ.get("CLIENT_ID", "217787792292380677@camera")
+    CLIENT_SECRET: str = environ.get("CLIENT_SECRET", "wvCrKsc5H0TqA7ktOuoWk4CdhVzp77PfqmQ8emGYbLcTiyUD7X2DAjUUg85QbvGN")
     
     @property
     def database_settings(self) -> dict:
