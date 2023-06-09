@@ -1,0 +1,93 @@
+version: "3"
+
+services:
+    app:
+        container_name: camera_service
+        build: .
+        environment:
+            APP_HOST: 127.0.0.1
+            APP_PORT: 80
+        ports:
+            - 9752:80
+        depends_on:
+            postgres:
+                condition: service_healthy
+        networks:
+            - backnet
+
+    postgres:
+        container_name: postgres
+        image: postgres:15.3
+        restart: always
+        environment:
+            POSTGRES_DB: camera_service_db
+            POSTGRES_HOST: 127.0.0.1
+            POSTGRES_USER: admin
+            POSTGRES_PASSWORD: admin
+            POSTGRES_PORT: 5432
+        ports:
+            - 5432:5432
+        volumes:
+            - ./camera_service_data:/var/lib/postgresql/data
+        healthcheck:
+            test: ["CMD-SHELL", "pg-isready -d camera_service_db -U admin"]
+            # interval: 1m30s
+            # timeout: 30s
+            # retries: 5
+            # start_period: 30s
+        networks:
+            - backnet
+    
+    emqx:
+        container_name: emqx
+        image: emqx/emqx:latest
+        restart: always
+        environment:
+            - "EMQX_NAME=emqx"
+            - "EMQX_HOST=node1.emqx.io"
+            - "EMQX_CLUSTER__DISCOVERY_STRATEGY=static"
+            - "EMQX_CLUSTER__STATIC__SEEDS=[emqx@node1.emqx.io]"
+        ports:
+            - 1883:1883
+            - 18083:18083
+        networks:
+            backnet:
+                aliases:
+                    - node1.emqx.io
+
+    zitadel:
+        container_name: zitadel
+        image: ghcr.io/zitadel/zitadel:latest
+        restart: always
+        command: start-from-init --masterkey "MasterkeyNeedsToHave32Characters" --tlsMode disabled
+        environment:
+            - "ZITADEL_DATABASE_COCKROACH_HOST=crdb"
+            - "ZITADEL_EXTERNALSECURE=false"
+        depends_on:
+            crdb:
+                condition: "service_healthy"
+        ports:
+            - 8080:8080
+        networks:
+            - backnet
+
+    crdb:
+        container_name: crdb
+        restart: always
+        image: cockroachdb/cockroach:v22.2.2
+        command: start-single-node --insecure
+        healthcheck:
+            test: ["CMD", "curl", "-f", "http://localhost:8080/health?ready=1"]
+            interval: 10s
+            timeout: 30s
+            retries: 5
+            start_period: 20s
+        ports:
+            - 9090:8080
+            - 26257:26257
+        networks:
+            - backnet
+
+networks:
+    backnet:
+        name: backend_net
